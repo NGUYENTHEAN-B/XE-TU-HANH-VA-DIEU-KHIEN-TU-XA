@@ -14,9 +14,7 @@ RF24 radio(CE_PIN, CSN_PIN); // Create a Radio
 //SCR
 #include <Adafruit_TCS34725.h>
 #include <Wire.h>
-/*
-*/
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_101MS, TCS34725_GAIN_4X);
 
 //SERVOR
 #include <Servo.h>
@@ -42,8 +40,8 @@ int in4 = 7;
 int ena = 2;
 int enb = 3;
 int i;
-int nspeed =100;
-int rotaspeed = 200;
+int nspeed =90;
+int rotaspeed = 150;
 
 
 //TRACKING LINE - TCRT
@@ -77,10 +75,8 @@ bool newData = 0;
 const int buttonRed_Pin = 30;     // Nút đỏ
 const int buttonGreen_Pin = 32;   // Nút xanh
 const int buttonYellow_Pin = 34;  // Nút vàng
-// Biến thời gian chống dội cho từng nút
 unsigned long lastButtonPress[3] = {0, 0, 0}; // Mảng cho Red, Green, Yellow
 const unsigned long DEBOUNCE_DELAY = 5; // Giảm thời gian chống dội xuống 50ms
-
 
 //SWITCH CHANGE MODE
 const int mode_Pin = 26;
@@ -255,29 +251,29 @@ void getData(){
       newData = true;
       //THẲNG PHẢI
       if ((buttonRight == LOW && buttonUp == LOW) ||(buttonRight == LOW && yAxis > 550)){
-      digitalWrite (in1, LOW);digitalWrite (in3, LOW);
-      digitalWrite (in2, LOW);digitalWrite (in4, HIGH);
+      digitalWrite (in1, HIGH);digitalWrite (in3, LOW);
+      digitalWrite (in2, LOW);digitalWrite (in4, LOW);
       analogWrite (ena, nspeed);
       analogWrite (enb, nspeed);
       }
       //THẲNG TRÁI
       else if ((buttonLeft == LOW && buttonUp == LOW) || (buttonLeft == LOW && yAxis > 550)){
-      digitalWrite (in1, LOW);digitalWrite (in3, LOW);
-      digitalWrite (in2, HIGH);digitalWrite (in4, LOW);
-      analogWrite (ena, nspeed);
-      analogWrite (enb, nspeed);
-      }
-      //LÙI PHẢI
-      else if ((buttonRight == LOW && buttonDown == LOW) || (buttonRight == LOW && yAxis < 470)){
       digitalWrite (in1, LOW);digitalWrite (in3, HIGH);
       digitalWrite (in2, LOW);digitalWrite (in4, LOW);
       analogWrite (ena, nspeed);
       analogWrite (enb, nspeed);
       }
+      //LÙI PHẢI
+      else if ((buttonRight == LOW && buttonDown == LOW) || (buttonRight == LOW && yAxis < 470)){
+      digitalWrite (in1, LOW);digitalWrite (in3, LOW);
+      digitalWrite (in2, HIGH);digitalWrite (in4, LOW);
+      analogWrite (ena, nspeed);
+      analogWrite (enb, nspeed);
+      }
       //LÙI TRÁI
       else if ((buttonLeft == LOW && buttonDown == LOW) || (buttonLeft == LOW && yAxis < 470)){
-      digitalWrite (in1, HIGH);digitalWrite (in3, LOW);
-      digitalWrite (in2, LOW);digitalWrite (in4, LOW);
+      digitalWrite (in1, LOW);digitalWrite (in3, LOW);
+      digitalWrite (in2, LOW);digitalWrite (in4, HIGH);
       analogWrite (ena, nspeed);
       analogWrite (enb, nspeed);
       }
@@ -343,33 +339,40 @@ void showdoline()
   Serial.println(giatri4);Serial.print("   ");
   Serial.print("S5: ");
   Serial.println(giatri5);Serial.print("   ");
+  delay (1000);
+
 }
 
 //RECEIVE DAT FROM TRACKING LINE - TCRT 
-void doline() {
-  giatri1 = digitalRead(s1); 
+void doline()
+{
+  giatri1 = digitalRead(s1); //Đọc giá trị cảm biến s1 và gán vào biến giatri1
   giatri2 = digitalRead(s2);
   giatri3 = digitalRead(s3);
   giatri4 = digitalRead(s4);
   giatri5 = digitalRead(s5);
-  newData_LINE = true; 
 
-  if (giatri2 == 1 && giatri3 == 0 && giatri4 == 1) {
+  if (giatri2 == 1 && giatri3 == 0 && giatri4 ==1)
+  {
     tien();
   }
-  else if (giatri2 == 0 && giatri3 == 1 && giatri4 == 1) {
+  else if (giatri2 == 0 && giatri3 == 1 && giatri4 ==1)
+  {
     trai();
-    if (giatri1 == 0) {
+    if (giatri1 == 0){
       trai();
     }
   }
-  else if (giatri2 == 1 && giatri3 == 1 && giatri4 == 0) {
+  else if (giatri2 == 1 && giatri3 == 1 && giatri4 ==0)
+  {
     phai();
-    if (giatri5 == 0) {
+    if (giatri5 == 0){
       phai();
     }
+
   }
-  else {
+  else
+  {
     tien();
     static unsigned long lastStopTime = 0;
     if (millis() - lastStopTime >= 50) {
@@ -388,14 +391,18 @@ void tranhvatcan ()
   {
     dokhoangcach();
     //KHONG CO VAT CAN PHIA TRUOC 
-    if(khoangcach>gioihan) 
+    if(khoangcach>gioihan||khoangcach==0)  
       {
         Serial.println("Không có vật cản phía trước");
         Serial.println("Đi thẳng");
+        delay(500);
+        //DI tien
         tien();
       }
-  }  else
-  {     
+  }
+  else
+  {
+      
       dung();
       quaycbsangtrai();
       
@@ -420,6 +427,7 @@ void tranhvatcan ()
         if (millis() - lastReverseTime >= 1000) {
           lastReverseTime = millis();
         }
+
         quaycbsangtrai();
       
         khoangcachtrai=khoangcach;
@@ -621,7 +629,8 @@ void tranhvatcan ()
             lastTurnTime4 = millis();
           }
 
-        }      
+        }
+      }
 
   } 
 }
@@ -629,19 +638,28 @@ void tranhvatcan ()
 //CHECK DETECT AVOID - SRF
 void dokhoangcach()
 {
+  //Phát xung từ chân trig, có độ rộng là 10ms
   digitalWrite(trig,0); //Tắt chân trig
   delayMicroseconds(2); 
   digitalWrite(trig,1); //bật chân trig để phát xung
   delayMicroseconds(10); //Xung có độ rộng là 10 microsecond
   digitalWrite(trig,0);
 
+  //Chân echo sẽ nhận xung phản xạ lại
+  //Và đo độ rộng xung cao ở chân echo
   thoigian = pulseIn (echo, HIGH);
   
+  //Tính khoảng cách đến vật thể (Đơn vị đo là cm)
+  //Tốc độ của âm thanh trong không khí là 340 m/s, tương đương 29,412 microSeconds/cm,
+  //Do thời gian được tính từ lúc phát tín hiệu tới khi sóng âm phản xạ lại,
+  //vì vậy phải chia cho 2
   khoangcach = int (thoigian / 2 / 29.412); 
 
+  //In lên Serial kết quả
   Serial.print("Khoảng cách: ");
   Serial.print(khoangcach);
   Serial.println("cm");
+  delay(500);
 }
 
 //DETECT COLOR
@@ -745,74 +763,32 @@ void dung()
 
 }
 
-void tangtoc ()
-{
-  for (i=0; i<256; i++)
-  {
-     analogWrite (ena, i);
-     digitalWrite (in2, HIGH); 
-     digitalWrite (in1, LOW);
-     analogWrite (enb, i);
-     digitalWrite (in4, HIGH); 
-     digitalWrite (in3, LOW);
-  }
-}
-
-void giamtoc ()
-{
-  
-  for (i=255; i>0; i--)
-  {
-     analogWrite (ena, i);
-     digitalWrite (in2, HIGH); 
-     digitalWrite (in1, LOW);
-     analogWrite (enb, i);
-     digitalWrite (in4, HIGH); 
-     digitalWrite (in3, LOW);
-  }
-}
 
 //QUAY SERVO SANG TRAI
 void quaycbsangtrai()
 {
-    myservo.write(180);              // Quay sang trái
-    delay(500);                     // Đợi 500ms để servo hoàn thành hành động (có thể điều chỉnh)
-    dokhoangcach();                 // Đo khoảng cách
-    myservo.write(90);              // Quay về vị trí trung gian
-    delay(500);                     // Đợi 500ms để servo ổn định
+    myservo.write(180);              // tell servo to go to position in variable 'pos'
+    delay(1000);
+    dokhoangcach();
+    myservo.write(90);              // tell servo to go to position in variable 'pos'  
 }
 
 //QUAY SERVO SANG PHAI
 void quaycbsangphai()
 {
-    myservo.write(0);               // Quay sang phải
-    delay(500);                     // Đợi 500ms để servo hoàn thành hành động (có thể điều chỉnh)
-    dokhoangcach();                 // Đo khoảng cách
-    myservo.write(90);              // Quay về vị trí trung gian
-    delay(500);                     // Đợi 500ms để servo ổn định
+    myservo.write(0);              // tell servo to go to position in variable 'pos'
+    delay(1000);
+    dokhoangcach();
+    myservo.write(90);              // tell servo to go to position in variable 'pos'
 }
+
 //QUAY SERVO VE GIUA
 void resetservo()
 {
    myservo.write(90);
 }
 
-void setColor() {
-  if (digitalRead(buttonRed_Pin) == LOW && millis() - lastButtonPress[0] >= DEBOUNCE_DELAY) {
-    selectedColor = "DO";
-    lastButtonPress[0] = millis();
-  }
-  if (digitalRead(buttonGreen_Pin) == LOW && millis() - lastButtonPress[1] >= DEBOUNCE_DELAY) {
-    selectedColor = "XANH";
-    lastButtonPress[1] = millis();
-  }
-  if (digitalRead(buttonYellow_Pin) == LOW && millis() - lastButtonPress[2] >= DEBOUNCE_DELAY) {
-    selectedColor = "LUC";
-    lastButtonPress[2] = millis();
-  }
-}
-
-// Định nghĩa hàm showColor
+//LCD _ HIEN MAU 
 void showColor() {
   lcd.setCursor(0, 1);
   lcd.print("MAU:            "); // Ghi đè với khoảng trắng để xóa dữ liệu cũ
@@ -831,3 +807,20 @@ void showMode() {
     lcd.print("                "); // Xóa dòng thứ hai khi ở chế độ thủ công
   }
 }
+
+//BUTTON_CHON MAU
+void setColor() {
+  if (digitalRead(buttonRed_Pin) == LOW && millis() - lastButtonPress[0] >= DEBOUNCE_DELAY) {
+    selectedColor = "DO";
+    lastButtonPress[0] = millis();
+  }
+  if (digitalRead(buttonGreen_Pin) == LOW && millis() - lastButtonPress[1] >= DEBOUNCE_DELAY) {
+    selectedColor = "XANH";
+    lastButtonPress[1] = millis();
+  }
+  if (digitalRead(buttonYellow_Pin) == LOW && millis() - lastButtonPress[2] >= DEBOUNCE_DELAY) {
+    selectedColor = "LUC";
+    lastButtonPress[2] = millis();
+  }
+}
+
